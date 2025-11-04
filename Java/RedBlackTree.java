@@ -5,6 +5,7 @@
  */
 
 
+import java.io.*;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,10 @@ import java.util.List;
 public class RedBlackTree {
     private final List<HuffmanCodec> codec;  //Knows huffman tree values
     private RBTreeNode root;  //keeps track of the root node of the tree
+    private final boolean verbose = true;
+    private final boolean snapshotAfterFixup = true;
+    private static final String LOG_FILE = "RB_LOG.txt";
+    private static  final File log_file;
 
     public RedBlackTree(List<HuffmanCodec> codec) {
         this.codec = codec;
@@ -36,27 +41,35 @@ public class RedBlackTree {
 
                 //If uncle is present, and it is a red node then recolor as follows
                 if (uncleNode != null && uncleNode.isRed) {
+                    log("fixup case1: recolor parent/uncle, move up");
                     uncleNode.isRed = false;  //Make uncle node to be black
                     current.parent.isRed = false; //Make the parent node to be black
                     current.parent.parent.isRed = true; //Make the grandparent node to be red
                     //Balance up to grandparent level,
                     // now move up to the grandparent level and check the ancestor nodes
                     current = current.parent.parent;
+                    snap("after case1");
 
                 } else { //either uncle node is absent or it is black, do rotations and recolor
 
                     if (current == current.parent.left) {  //it is a left child
+                        log("fixup case2: right-rotate parent");
                         current = current.parent;
                         rightRotate(current); //do a right rotation,and make the grandparent-parent-child subtree left biased
+                        snap("after case2");
+
                     }
+                    log("fixup case3: left-rotate parent");
                     //if is right child then  the grandparent-parent-child subtree is left biased
                     current.parent.isRed = false;   //make the parent node to black
                     current.parent.parent.isRed = true;  //make grandparent node to be red
                     leftRotate(current.parent.parent);  //do a whole left rotation, making the parent the grandparent, grandparent left child and child stays as right child
+                    snap("after case3");
+
                 }
             } else {  //if parent is a left child of the grandparent, this functionality is basically the mirror image of the above
                 uncleNode = current.parent.parent.right;//determine the Uncle node, which is the right child of the grandparent
-
+                log("fixup case1(mirror): recolor parent/uncle, move up");
                 //If uncle is present, and it is a red node then recolor as follows
                 if (uncleNode != null && uncleNode.isRed) {
                     uncleNode.isRed = false; //Make uncle node to be black
@@ -65,15 +78,20 @@ public class RedBlackTree {
                     //Balance up to grandparent level,
                     // now move up to the grandparent level and check the ancestor nodes
                     current = current.parent.parent;
+                    snap("after case1(mirror)");
                 } else { //either uncle node is absent or it is black, do rotations and recolor
                     if (current == current.parent.right) { //it is a right child
+                        log("fixup case2(mirror): left-rotate parent");
                         current = current.parent;
                         leftRotate(current); //do a left rotation,and make the grandparent-parent-child subtree right biased
+                        snap("after case2(mirror)");
                     }
+                    log("fixup case3(mirror): right-rotate grandparent");
                     //if is left child then  the grandparent-parent-child subtree is right biased
                     current.parent.isRed = false; //make parent node to black
                     current.parent.parent.isRed = true;  //make grandparent node to red
                     rightRotate(current.parent.parent); //do a whole left rotation, making the parent the grandparent, grandparent left child and child stays as right child
+                    snap("after case3(mirror)");
                 }
             }
             //There won't be any parents for root, so break the cycle
@@ -91,6 +109,7 @@ public class RedBlackTree {
      */
     private void leftRotate(RBTreeNode current) {
         RBTreeNode placeholder = current.right;
+        log("leftRotate at key=" + current.key);
         current.right = placeholder.left;
         if (placeholder.left != null) {
             placeholder.left.parent = current;
@@ -114,6 +133,7 @@ public class RedBlackTree {
      */
     private void rightRotate(RBTreeNode anchor) {
         RBTreeNode placeholder = anchor.left;  //hold left child of anchor node
+        log("rightRotate at key=" + anchor.key);
         anchor.left = placeholder.right; //swap left and right child of the anchor
         if (placeholder.right != null) {  //right child is present
             placeholder.right.parent = anchor;
@@ -158,6 +178,7 @@ public class RedBlackTree {
                 current = current.right; //move to the right
             } else { //new index is equal to the current node
                 current.studentRef.add(studentRecord); //make the student point to the same red black node.
+                log("append tree Node reference: key=" + rbTreeNode.key + " Student record=" + studentRecord.student.toString());
                 //This reduces duplicate tree nodes/tree size and thus reducing the search space
                 break;
             }
@@ -180,7 +201,7 @@ public class RedBlackTree {
         if (rbTreeNode.parent.parent == null) { //no grandparent?
             return; //no need to balance
         }
-
+        log("insert key=" + rbTreeNode.key + "; balance Tree");
         balanceTree(rbTreeNode); //balance the tree
     }
 
@@ -268,5 +289,51 @@ public class RedBlackTree {
         }
     }
 
+    private void log(String s) { if (verbose) writeToFile(s); }
+
+    private void snap(String label) { if (snapshotAfterFixup) { writeToFile("[RB SNAP] " + label); writeTreeToFile(); } }
+
+    /**
+     * write LOG messages to a txt file
+     * @param message message to print
+     */
+    public void writeToFile(String message){
+        try(FileWriter w = new FileWriter(log_file,true);
+        PrintWriter pw = new PrintWriter(w)){
+            pw.println(message);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    //Delete the old tree LOG during startup
+    static {
+        log_file = new File(MemoryDatabase.BASE_PATH, LOG_FILE);
+        try(FileWriter w = new FileWriter(log_file,false);
+            PrintWriter pw = new PrintWriter(w)){
+            pw.print("");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Write the tree to a log txt file
+     */
+    public void writeTreeToFile(){
+        try(FileWriter w = new FileWriter(log_file,true);
+            PrintWriter pw = new PrintWriter(w)){
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(byteArrayOutputStream);
+            PrintStream oldOut = System.out;  //previously it was console out
+            System.setOut(ps);  //override and set the system out to file
+            printTree();
+            System.out.flush();
+            System.setOut(oldOut);   //set it back to console out
+            pw.println(byteArrayOutputStream.toString());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 }

@@ -30,11 +30,13 @@ public class MemoryDatabase {
 
     LinkedList list;  //Object of the linked list
 
-    private static final String BASE_PATH = "D:\\Algorithms\\CourseProject-2\\Data"; // target directory
+    public static final String BASE_PATH = "D:\\Algorithms\\CourseProject-2\\Data"; // target directory
 
     private static final String FILENAME = "student-data.csv";  //input file name
 
     private static final String OUTFILE = "student-op-data" + getTimeStamp() + ".csv"; //output file name
+
+
 
     private final Map<String, HuffmanCodec> codec = new HashMap<>(); //huffman encoded student-data set
 
@@ -436,6 +438,7 @@ public class MemoryDatabase {
             printWriter.println(head);  //print the header row of the csv
             //Print rest of the rows
             database.print(filteredStudentList, printWriter);
+            System.out.println("Refer the created log files for Huffman and Red-black trees");
             System.out.println("Output save to " + OUTFILE);
         } catch (Exception e) { //Global catch block to handle all the exception thrown by the program
             e.printStackTrace(System.out);  //print the exception stack trace in console
@@ -507,7 +510,7 @@ public class MemoryDatabase {
                     String bitString = code.encode(token);
                     //hold the entire database
                     //We can also store this physically
-                    encodedDatabase.computeIfAbsent(colName, _ -> new ArrayList<>()).add(bitString);
+                    encodedDatabase.computeIfAbsent(colName, k -> new ArrayList<>()).add(bitString);
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }
@@ -540,8 +543,10 @@ public class MemoryDatabase {
             current = current.next;
         }
         LinkedList filteredStudent = new LinkedList();
+
+        tree.writeToFile("Final Red-Black Tree");
         //print the constructed tree
-        tree.printTree();
+        tree.writeTreeToFile();
 
         //walk thew tree to find the tree node with the given index
         List<FilteredStudent> filteredStudents = tree.search(comparatorValues);

@@ -1,3 +1,6 @@
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.util.*;
 /*
   @author: Qingyun PU
@@ -20,7 +23,11 @@ import java.util.*;
  */
 public class HuffmanCodec {
 
+    private static final boolean verbose = true;
 
+    private static final String LOG_FILE = "HUFFMAN_LOG.txt";
+
+    private static  final File log_file;
     /**
      * Tree node for Huffman building
      */
@@ -70,11 +77,11 @@ public class HuffmanCodec {
 
         PriorityQueue<Node> pq = new PriorityQueue<>();
         if (trace) {
-            System.out.println("Huffman frequency table:");
+            log("Huffman frequency table:");
             var keys = new ArrayList<>(freq.keySet());
             Collections.sort(keys);
-            for (String k : keys) System.out.println("  " + k + " : " + freq.get(k));
-            System.out.println();
+            for (String k : keys) log("  " + k + " : " + freq.get(k));
+            log("\n");
         }
         for (Map.Entry<String, Integer> e : freq.entrySet()) {
             pq.add(new Node(e.getKey(), e.getValue()));
@@ -96,8 +103,8 @@ public class HuffmanCodec {
             if (trace) {
                 String la = a.isLeaf() ? ("'" + a.sym + "'") : "(internal)";
                 String lb = b.isLeaf() ? ("'" + b.sym + "'") : "(internal)";
-                System.out.printf("Merge #%d: %s[%d] + %s[%d] -> %d%n",
-                        step++, la, a.freq, lb, b.freq, a.freq + b.freq);
+                log(String.format("Merge #%d: %s[%d] + %s[%d] -> %d%n",
+                        step++, la, a.freq, lb, b.freq, a.freq + b.freq));
             }
             pq.add(new Node(a, b));
         }
@@ -106,7 +113,7 @@ public class HuffmanCodec {
         hc.traceEnabled = trace;
         hc.root = pq.poll();
         hc.build(hc.root, "");
-        if (trace) System.out.println();
+        if (trace) log("\n");
         return hc;
     }
 
@@ -139,16 +146,6 @@ public class HuffmanCodec {
     }
 
 
-    public List<Object> decodeAll(Class<?> type) {
-        System.out.println(encoded);
-        List<Object> decoded = new ArrayList<>();
-        //Given the huffman bit code will be unique for each unique string
-        for (Map.Entry<String, String> kvPair : encoded.entrySet())
-            decoded.add(castToType(kvPair.getKey(), type));
-
-        return decoded;
-
-    }
 
     private Object castToType(String key, Class<?> type) {
 
@@ -169,7 +166,7 @@ public class HuffmanCodec {
         ArrayList<String> keys = new ArrayList<>(enc.keySet());
         Collections.sort(keys);
         for (String k : keys) {
-            System.out.println(k + " -> " + enc.get(k));
+            log(k + " -> " + enc.get(k));
         }
     }
 
@@ -177,14 +174,14 @@ public class HuffmanCodec {
      * Pretty-print the Huffman tree as ASCII with 0/1 edges.
      */
     public void printAsciiTree() {
-        System.out.println("(Huffman tree; left=0, right=1)");
+        log("(Huffman tree; left=0, right=1)");
         printAscii(root, "", true, "");
     }
 
     private void printAscii(Node n, String prefix, boolean isTail, String edge) {
         if (n == null) return;
         String label = n.isLeaf() ? ("'" + n.sym + "'") : "(internal)";
-        System.out.println(prefix + (edge.isEmpty() ? "" : edge + " ") +
+        log(prefix + (edge.isEmpty() ? "" : edge + " ") +
                 (isTail ? "└─ " : "├─ ") + label + " [" + n.freq + "]");
         String newPrefix = prefix + (isTail ? "   " : "│  ");
         if (n.left != null || n.right != null) {
@@ -196,6 +193,32 @@ public class HuffmanCodec {
             } else if (n.right != null) {
                 printAscii(n.right, newPrefix, true, "1");
             }
+        }
+    }
+
+    private static void log(String s) { if (verbose) writeToFile(s); }
+
+    /**
+     * write LOG messages to a txt file
+     * @param message message to print
+     */
+    private static void writeToFile(String message){
+        try(FileWriter w = new FileWriter(log_file,true);
+            PrintWriter pw = new PrintWriter(w)){
+            pw.println(message);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    //Delete the old tree LOG during startup
+    static {
+        log_file = new File(MemoryDatabase.BASE_PATH, LOG_FILE);
+        try(FileWriter w = new FileWriter(log_file,false);
+            PrintWriter pw = new PrintWriter(w)){
+            pw.print("");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 }
