@@ -1,7 +1,7 @@
 /*
   @author: Kowshick Srinivasan
  * @version: 1.0
- * @Assignment: course project-1
+ * @Assignment: course project-2
  */
 
 
@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 /**
  * Reflection/subclass of the student class
  */
-public class FilteredStudent extends Student{  //Inherit from parent class.
+public class FilteredStudent extends Student {  //Inherit from parent class.
     private final Field[] filteredColumns;   //List of columns that needs to be filtered
     //The values of each column,
     // since we don't know the exact datatype we use the parent type Object.
@@ -25,11 +25,12 @@ public class FilteredStudent extends Student{  //Inherit from parent class.
         this.values = values;
     }
 
+
     /**
      * Method that compares this filterStudent object to the given studentObject using the comparision column
      *
-     * @param matchedField              - Sort based on this column
-     * @param student - to be compared class
+     * @param matchedField - Sort based on this column
+     * @param student      - to be compared class
      * @return integer specifying comparision result
      */
     @Override
@@ -48,8 +49,9 @@ public class FilteredStudent extends Student{  //Inherit from parent class.
                 }
             }
         }
-        return super.compare(student,matchedField);  //Column not found in select check parent class
+        return super.compare(student, matchedField);  //Column not found in select check parent class
     }
+
     /**
      * Converts the filterStudent object to a string
      *
@@ -63,4 +65,22 @@ public class FilteredStudent extends Student{  //Inherit from parent class.
             return String.valueOf(e);  //get the element as string
         }).collect(Collectors.joining(",")); //separate them using ","
     }
+
+    public FilteredStudent(Field[] selectedColumns, Object[] values) {
+        this.filteredColumns = selectedColumns;
+        this.values = values;
+
+        for (int i = 0; i < filteredColumns.length; i++) {
+            Field field = filteredColumns[i];
+            Object value = values[i];
+            try {
+                field.setAccessible(true);
+                field.set(this, value);  // "this" refers to current FilteredStudent object
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
 }

@@ -6,6 +6,8 @@
  */
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Student {
     String school;
@@ -164,6 +166,9 @@ public class Student {
                 "," + convertBoolToString(passed);
     }
 
+    public Student() {
+    }
+
     //Convert the boolean object back to user specified String
     private String convertBoolToString(boolean studentVariable) {
         return studentVariable ? "yes" : "no"; //If bool is True convert to yes else no
@@ -172,8 +177,8 @@ public class Student {
     /**
      * Method that compares this filterStudent object to the given studentObject using the comparision column
      *
-     * @param matchedField              - Sort based on this column
-     * @param student - to be compared class
+     * @param matchedField - Sort based on this column
+     * @param student      - to be compared class
      * @return integer specifying comparision result
      */
     public int compare(Student student, Field matchedField) throws IllegalAccessException {
@@ -200,7 +205,16 @@ public class Student {
             values[i] = columns[i].get(this); //Get the data of the student variable
         }
 
-        return new FilteredStudent(this,columns, values);  //map the columns and values to a filteredStudent object
+        return new FilteredStudent(this, columns, values);  //map the columns and values to a filteredStudent object
+    }
+
+    public List<String> convertFieldToColumn(List<Field> column) throws IllegalAccessException {
+        List<String> columnName = new ArrayList<>();
+        for (Field field : column) {
+            field.setAccessible(true); //give access if variable is private
+            columnName.add(String.valueOf(field.get(this)));
+        }
+        return columnName; //Get the data of the student variable
     }
 }
 

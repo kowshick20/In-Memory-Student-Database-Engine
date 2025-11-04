@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 /*
   @author: Kowshick Srinivasan, Qingyun PU
  * @version: 1.0
- * @Assignment: course project-1
+ * @Assignment: course project-2
  */
 
 /**
@@ -17,30 +17,28 @@ import java.util.stream.Collectors;
  * <p>
  * Features
  * - Load CSV into an in-memory linked list
- * - Insertion sort (linked-list relink)
- * - Quick sort (linked-list recursive partition)
- * - Minimal SQL:
- * select c1, c2, ... from t1 order by cX ASC/DSC with insertion_sort|quick_sort;
- * - Recursive CSV export via: output <file>
- * (exports ONLY the last query's SELECT columns; falls back to all columns if no query yet)
+ * - Compresses the whole database for disk storage using huffman-code
+ * - Build a Red-Black tree using index column for easy search of the student records
  * <p>
  * Usage
  * javac *.java
  * java MemoryDatabase
  * # REPL examples:
- * select school,sex,age from t1 order by age ASC with insertion_sort;
- * select school,sex,age from t1 order by age DSC with quick_sort;
  * quit
  **/
 public class MemoryDatabase {
 
     LinkedList list;  //Object of the linked list
 
-    private static final String BASE_PATH = "."; // target directory
+    private static final String BASE_PATH = "D:\\Algorithms\\CourseProject-2\\Data"; // target directory
 
     private static final String FILENAME = "student-data.csv";  //input file name
 
     private static final String OUTFILE = "student-op-data" + getTimeStamp() + ".csv"; //output file name
+
+    private final Map<String, HuffmanCodec> codec = new HashMap<>(); //huffman encoded student-data set
+
+    private final Map<String, List<String>> encodedDatabase = new HashMap<>();  //Hold the encode student dataset
 
     //Constructor based dependency injection
     public MemoryDatabase(LinkedList list) {
@@ -68,6 +66,7 @@ public class MemoryDatabase {
      */
     private LinkedList.Node filterQuery(Field[] columns)
             throws IllegalAccessException {
+        LinkedList.Node student = findStudent(columns);
         //List to store the filtered column objects
         //Since filterStudent is child of student, we can use polymorphism
         LinkedList filteredStudents = new LinkedList(); //Create a new LinkedList for filtered students
@@ -82,6 +81,42 @@ public class MemoryDatabase {
     }
 
     /**
+     * Method to filter out only the required columns from the encoded in-memory database
+     *
+     * @param selectedColumns - Required columns
+     * @return Linked list of filtered students
+     */
+    public LinkedList.Node findStudent(Field[] selectedColumns) {
+
+        LinkedList filteredStudents = new LinkedList(); //Create a new LinkedList for filtered students
+        LinkedList.Node current = null; //current node pointer
+        int n = encodedDatabase.values().iterator().next().size();  //total columns in student table
+
+        //each columns
+        for (int row = 0; row < n; row++) {
+            //Array to hold the values of the objects
+            Object[] values = new Object[selectedColumns.length];
+
+            //required columns
+            for (int col = 0; col < selectedColumns.length; col++) {
+                Field cols = selectedColumns[col];
+                String column = cols.getName();  //names of the column to be selected
+                HuffmanCodec code = codec.get(column); //get the huffman coding tree
+
+                List<String> encodedValuesList = encodedDatabase.get(column); //get the encoded column
+                String encodedRow = encodedValuesList.get(row); //locate the value which is required
+
+                Object decoded = code.decode(encodedRow, cols.getType());  //decode them
+                values[col] = decoded;
+            }
+            FilteredStudent filteredStudent = new FilteredStudent(selectedColumns, values);  //create Filtered Student
+            current = filteredStudents.insert(current, filteredStudent, null); //create the linked list
+
+        }
+        return filteredStudents.head;
+    }
+
+    /**
      * Method to verify the correctness of user query against the SQL grammar and
      * retrieve the select query parameters
      *
@@ -91,9 +126,10 @@ public class MemoryDatabase {
     private SelectParameters retrieveParameters(String userInput) {
         //Select query grammar, the user input needs to satisfy this grammar to pass
         String sqlGrammar = "select\\s+(.*?)\\s+" +   // group 1 = columns list
-                "from\\s+(\\w+)\\s+" +                // group 2 = table name
-                "order\\s+by\\s+(\\w+)\\s+(ASC|DSC)\\s+" +  // group 3 = sort column, group 4 = order
-                "with\\s+(bubble_sort|insertion_sort|merge_sort|quick_sort)\\.?"; // group 5 = sort algorithm
+                "from\\s+(\\w+)\\s+where\\s+((?:\\w+\\s+equal\\s+\\w+)(?:\\s+and\\s+\\w+\\s+equal\\s+\\w+)*)\\s+" + // group 2 = table name group 3= where col group 4= comp value
+                "order\\s+by\\s+(\\w+)\\s+(ASC|DSC)\\s+" +  // group 5 = sort column, group 6 = order
+                "with\\s+(bubble_sort|insertion_sort|merge_sort|quick_sort)\\.?"; // group 7 = sort algorithm
+
         //Compile the SQL grammar i.e. convert Regex string to Grammar
         Pattern pattern = Pattern.compile(sqlGrammar);
         //Match the User input against out grammar
@@ -105,12 +141,26 @@ public class MemoryDatabase {
             parameters = new SelectParameters(Arrays.stream(m.group(1).split(",\\s?")).  //There can be multiple COMMA separated select columns
                     map(MemoryDatabase::convertStringToField).toArray(Field[]::new),   //Convert String to Object.Field
                     m.group(2),    //Retrieve Table name
-                    convertStringToField(m.group(3)),  //Get and Convert the sort columns to Object.field
-                    m.group(4),  //Get the sort method ASC/DSC
-                    m.group(5)); //Get the sort algorithm to be used
+                    convertStringToField(m.group(4)),  //sort column
+                    m.group(5),  //sort order
+                    m.group(6)  //Get the sort algorithm to be used
+                    );
+
+
+            String whereClause = m.group(3);//Get the where clause
+            Pattern condPattern = Pattern.compile("(\\w+)\\s+equal\\s+(\\w+)");
+            Matcher matcher= condPattern.matcher(whereClause);
+            Map<Field,String> whereMap = new HashMap<>();
+            while(matcher.find()){
+                Field colName = convertStringToField(matcher.group(1).trim());
+                String comparatorVal = matcher.group(2).trim();
+                whereMap.put(colName,comparatorVal);
+            }
+            parameters.setWhereConditions(whereMap);
 
         } else
             throw new IllegalArgumentException("Syntax not matching");  //If user-input not matched
+
         return parameters;
     }
 
@@ -254,7 +304,8 @@ public class MemoryDatabase {
 
     }
 
-    private int compareTo(Student student, Student student1, Field comparatorColumn, String asc) throws IllegalAccessException {
+    private int compareTo(Student student, Student student1,
+                          Field comparatorColumn, String asc) throws IllegalAccessException {
         int c = student.compare(student1, comparatorColumn);
         return Objects.equals(asc, "ASC") ? c : -c;
     }
@@ -367,30 +418,40 @@ public class MemoryDatabase {
         {
             br.readLine();  //Skip the Header of the csv
             database.read(br, database.list.head);   //Read the student details from the file and add it to the linked list
+            database.createHuffman();  //identify the huffman encoding pattern.
+
+            database.encodeDatabase();  //encode the whole student database, can store physically
+
             System.out.println("Write the select query");
             System.out.println("SQL> ");
+            //String userInput = "select school, sex, age,guardian, from t1 where school equal MS order by sex DSC with bubble_sort.";
+            // "select school, sex, guardian, from t1 where guardian equal father order by sex DSC with bubble_sort.";
             //Get the select query from the user
             String userInput = scanner.nextLine();
 
             //Check an retrieve parameters
             SelectParameters parameters = database.retrieveParameters(userInput);
             //filter only required column
-            LinkedList.Node filteredStudentList = database.filterQuery(parameters.columns());
+            LinkedList.Node filteredStudentList = database.findStudent(parameters.getColumns());
+
+            //Draw a Red-Black tree to ease out the searching process, the tree index is based on the where clause
+            filteredStudentList = database.createRBTree(filteredStudentList, parameters.getWhereConditions());
+
             //Sort the filtered Object using the selected algorithm
-            filteredStudentList = switch (parameters.sortAlgorithm()) {
+            filteredStudentList = switch (parameters.getSortAlgorithm()) {
                 case "bubble_sort" ->
-                        database.bubbleSort(filteredStudentList, parameters.sortColumn(), parameters.sortMethod());
+                        database.bubbleSort(filteredStudentList, parameters.getSortColumn(), parameters.getSortMethod());
                 case "insertion_sort" ->
                     // Insertion Sort
-                        database.insertionSort(filteredStudentList, parameters.sortColumn(), parameters.sortMethod());
+                        database.insertionSort(filteredStudentList, parameters.getSortColumn(), parameters.getSortMethod());
                 case "merge_sort" ->
-                        database.mergeSort(filteredStudentList, parameters.sortColumn(), parameters.sortMethod());
+                        database.mergeSort(filteredStudentList, parameters.getSortColumn(), parameters.getSortMethod());
                 default ->
                     //quick Sort
-                        database.quickSort(filteredStudentList, parameters.sortColumn(), parameters.sortMethod());
+                        database.quickSort(filteredStudentList, parameters.getSortColumn(), parameters.getSortMethod());
             };
             //Get the columns header in a comma separated string
-            String head = Arrays.stream(parameters.columns())
+            String head = Arrays.stream(parameters.getColumns())
                     .map(Field::getName).
                     collect(Collectors.joining(","));
 
@@ -402,6 +463,108 @@ public class MemoryDatabase {
         } catch (Exception e) { //Global catch block to handle all the exception thrown by the program
             e.printStackTrace(System.out);  //print the exception stack trace in console
         }
+    }
+
+    /**
+     * Generate the huffman tree, for each column of the in-memory database
+     */
+    private void createHuffman() {
+        Map<String, Map<String, Integer>> columnFrequencies = new HashMap<>();
+
+        LinkedList.Node currentNode = list.head;
+        while (currentNode != null) {
+            Student student = currentNode.student;
+
+            for (Field field : Student.class.getDeclaredFields()) {
+                field.setAccessible(true);
+                try {
+                    Object val = field.get(student);
+                    String colName = field.getName();
+                    String token = String.valueOf(val);
+
+                    columnFrequencies.putIfAbsent(colName, new HashMap<>());
+                    Map<String, Integer> freqMap = columnFrequencies.get(colName);
+
+                    freqMap.put(token, freqMap.getOrDefault(token, 0) + 1);
+
+
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            currentNode = currentNode.next;
+        }
+
+
+        for (Map.Entry<String, Map<String, Integer>> entry : columnFrequencies.entrySet())
+            codec.put(entry.getKey(), HuffmanCodec.fromFrequencies(entry.getValue(), true));
+        // 3) Build Huffman codecs WITH TRACE enabled (for step-by-step screenshots)
+
+
+    }
+
+
+
+    private void encodeDatabase() {
+        LinkedList.Node curr = list.head;
+        while (curr != null) {
+            Student currentStudent = curr.student;
+            for (Field field : Student.class.getDeclaredFields()) {
+                field.setAccessible(true);
+                String colName = field.getName();
+                HuffmanCodec code = codec.get(colName);
+                if (code == null) continue;
+                try {
+                    Object val = field.get(currentStudent);
+                    if (val == null) continue;
+
+                    String token = String.valueOf(val);  //get the col value in string
+                    String bitString = code.encode(token);
+
+                    encodedDatabase.computeIfAbsent(colName, _ -> new ArrayList<>()).add(bitString);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+            curr = curr.next;
+        }
+
+    }
+
+    /**
+     * Method to create the red back tree for the given in-memory database
+     */
+    private LinkedList.Node createRBTree(LinkedList.Node filteredStudentList,Map<Field,String> whereCondition) throws IllegalAccessException {
+        List<HuffmanCodec> codecs = new ArrayList<>();
+        List<Field> columns = whereCondition.keySet().stream().toList();
+        List<String> comparatorValues = whereCondition.values().stream().toList();
+
+        for (Field column : columns) {
+            codecs.add(codec.get(column.getName()));
+        }
+//        codecs.add(codec.get(field.getName()));
+//        codecs.add(codec.get(whereColumn2.getName()));  //NOT THE EFFICIENT WAY, good for testing
+        RedBlackTree tree = new RedBlackTree(codecs);
+        LinkedList.Node current = filteredStudentList;
+        //Loop until the end of the linked-list
+        while (current != null) {
+
+            tree.add(current, current.student.convertFieldToColumn(columns));
+            current = current.next;
+        }
+        LinkedList filteredStudent = new LinkedList();
+        //print the constructed tree
+        tree.printTree();
+
+        List<FilteredStudent> filteredStudents = tree.search(comparatorValues);
+        //Create a new LinkedList for filtered students
+        for (FilteredStudent fs : filteredStudents) {
+            current = filteredStudent.insert(current, fs, null);
+        }
+        return filteredStudent.head;
+
     }
 
     /**
@@ -418,6 +581,7 @@ public class MemoryDatabase {
             return 0;
         return print(current.next, printWriter); //recursively call the print method with updated last node pointer
     }
+
 
 }
 
