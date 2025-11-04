@@ -4,8 +4,6 @@
  * @Assignment: Hw2
  */
 
-import java.lang.reflect.Field;
-
 /**
  * Class to define the structure of the linked list
  */

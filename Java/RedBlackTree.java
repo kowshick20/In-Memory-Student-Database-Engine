@@ -13,11 +13,11 @@ import java.util.List;
  * Class responsible for the creation/manipulation of the red black tree
  */
 public class RedBlackTree {
-    private final List<HuffmanCodec> codec;
+    private final List<HuffmanCodec> codec;  //Knows huffman tree values
     private RBTreeNode root;  //keeps track of the root node of the tree
 
     public RedBlackTree(List<HuffmanCodec> codec) {
-        this.codec =  codec;
+        this.codec = codec;
     }
 
 
@@ -84,7 +84,11 @@ public class RedBlackTree {
         root.isRed = false;   //Root is always Black irrespective of any cases
     }
 
-
+    /**
+     * method left rotates the nodes through the given anchor node
+     *
+     * @param current Anchor node
+     */
     private void leftRotate(RBTreeNode current) {
         RBTreeNode placeholder = current.right;
         current.right = placeholder.left;
@@ -112,7 +116,7 @@ public class RedBlackTree {
         RBTreeNode placeholder = anchor.left;  //hold left child of anchor node
         anchor.left = placeholder.right; //swap left and right child of the anchor
         if (placeholder.right != null) {  //right child is present
-            placeholder.right.parent = anchor; //
+            placeholder.right.parent = anchor;
         }
         placeholder.parent = anchor.parent;
         if (anchor.parent == null) {
@@ -126,15 +130,12 @@ public class RedBlackTree {
         anchor.parent = placeholder;
     }
 
-    public void add(LinkedList.Node studentRecord, List<String> key){
+    public void add(LinkedList.Node studentRecord, List<String> key) {
         String bits = null;
-        for(int i=0;i<key.size();i++)
-            bits+= codec.get(i).encode(key.get(i));
-
-        // String bits = codec.get(0).encode(key[0]) + codec.get(1).encode(key[1]);  //NOT THE EFFICIENT WAY
-
+        for (int i = 0; i < key.size(); i++)
+            bits += codec.get(i).encode(key.get(i));
         int k = rbKeyFromBits(bits);
-        insert(k,studentRecord);
+        insert(k, studentRecord);
     }
 
     /**
@@ -216,6 +217,12 @@ public class RedBlackTree {
         }
     }
 
+    /**
+     * This method is used to traverse the RB-tree and search for the given element,
+     * Traveling is same as traversing a BST
+     * @param keySearch Keys used to be searched in the RB tree
+     * @return the list of student references
+     */
     public List<FilteredStudent> search(List<String> keySearch) {
         int key = findTreeNodeId(keySearch);
         List<FilteredStudent> filteredStudents = new ArrayList<>();
@@ -236,13 +243,15 @@ public class RedBlackTree {
 
     private int findTreeNodeId(List<String> key) {
         String bits = null;
-        for(int i=0;i<key.size();i++)
-            bits+= codec.get(i).encode(key.get(i));
+        for (int i = 0; i < key.size(); i++)
+            bits += codec.get(i).encode(key.get(i));
 
         return rbKeyFromBits(bits);
     }
 
-    /** Convert Huffman bit-string into an int key for the RB-tree. */
+    /**
+     * Convert Huffman bit-string into an int key for the RB-tree.
+     */
     private static int rbKeyFromBits(String bits) {
         // Keep leading zeros by adding a head '1'
         String withHead = "1" + bits;
@@ -258,7 +267,6 @@ public class RedBlackTree {
             return withHead.hashCode();
         }
     }
-
 
 
 }

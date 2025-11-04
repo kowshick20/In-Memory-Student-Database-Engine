@@ -8,18 +8,14 @@
 import java.lang.reflect.Field;
 import java.util.Map;
 
-//Record to store the SQL select parameters
+//Class to store the SQL select parameters
 public class SelectParameters {
-    private final Field[] columns;
-    private final String table;
-    //                               Field whereColumn,
-//                               String comparatorValue,
-//                               Field whereColumn2,
-//                               String comparatorValue2,
-    private Map<Field, String> whereConditions;
-    private final Field sortColumn;
-    private final String sortMethod;
-    private final String sortAlgorithm;
+    private final Field[] columns;  //Hold the required columns for filtering
+    private final String table;  //Hold the table name
+    private Map<Field, String> whereConditions;  //hold the where conditions and their corresponding comparision value
+    private final Field sortColumn;  //Column to be sorted based on
+    private final String sortMethod;  //ASC/DSC
+    private final String sortAlgorithm;  //method used to sort
 
     public SelectParameters(Field[] columns, String table, Field sortColumn, String sortMethod, String sortAlgorithm) {
         this.columns = columns;
@@ -37,9 +33,7 @@ public class SelectParameters {
         return columns;
     }
 
-    public String getTable() {
-        return table;
-    }
+
 
     public Map<Field, String> getWhereConditions() {
         return whereConditions;

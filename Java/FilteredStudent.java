@@ -66,16 +66,22 @@ public class FilteredStudent extends Student {  //Inherit from parent class.
         }).collect(Collectors.joining(",")); //separate them using ","
     }
 
+    /**
+     * This constructor is used to create a subclass of student
+     * when the filtered columns and its corresponding values are available
+     * @param selectedColumns List of required columns
+     * @param values Corresponding values
+     */
     public FilteredStudent(Field[] selectedColumns, Object[] values) {
         this.filteredColumns = selectedColumns;
         this.values = values;
-
+        //Assign the values to the correct column name.
         for (int i = 0; i < filteredColumns.length; i++) {
             Field field = filteredColumns[i];
             Object value = values[i];
             try {
                 field.setAccessible(true);
-                field.set(this, value);  // "this" refers to current FilteredStudent object
+                field.set(this, value);
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }

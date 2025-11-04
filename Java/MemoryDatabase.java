@@ -59,34 +59,12 @@ public class MemoryDatabase {
 
 
     /**
-     * Method to filter out only the required columns from the Linked List/in-memory database
-     *
-     * @param columns - Required columns
-     * @return List of filtered students
-     */
-    private LinkedList.Node filterQuery(Field[] columns)
-            throws IllegalAccessException {
-        LinkedList.Node student = findStudent(columns);
-        //List to store the filtered column objects
-        //Since filterStudent is child of student, we can use polymorphism
-        LinkedList filteredStudents = new LinkedList(); //Create a new LinkedList for filtered students
-        LinkedList.Node current = null; //current node pointer
-        while (list.head != null) {  //Loop until end of LinkedList
-            //Can extend with here for where clause
-            //Filter only yhe required columns and add it to the List
-            current = filteredStudents.insert(current, list.head.student.filterColumns(columns), null);
-            list.head = list.head.next; //Move to next element
-        }
-        return filteredStudents.head;
-    }
-
-    /**
      * Method to filter out only the required columns from the encoded in-memory database
      *
      * @param selectedColumns - Required columns
      * @return Linked list of filtered students
      */
-    public LinkedList.Node findStudent(Field[] selectedColumns) {
+    private LinkedList.Node findStudent(Field[] selectedColumns) {
 
         LinkedList filteredStudents = new LinkedList(); //Create a new LinkedList for filtered students
         LinkedList.Node current = null; //current node pointer
@@ -144,17 +122,17 @@ public class MemoryDatabase {
                     convertStringToField(m.group(4)),  //sort column
                     m.group(5),  //sort order
                     m.group(6)  //Get the sort algorithm to be used
-                    );
+            );
 
 
             String whereClause = m.group(3);//Get the where clause
             Pattern condPattern = Pattern.compile("(\\w+)\\s+equal\\s+(\\w+)");
-            Matcher matcher= condPattern.matcher(whereClause);
-            Map<Field,String> whereMap = new HashMap<>();
-            while(matcher.find()){
+            Matcher matcher = condPattern.matcher(whereClause);
+            Map<Field, String> whereMap = new HashMap<>();
+            while (matcher.find()) {
                 Field colName = convertStringToField(matcher.group(1).trim());
                 String comparatorVal = matcher.group(2).trim();
-                whereMap.put(colName,comparatorVal);
+                whereMap.put(colName, comparatorVal);
             }
             parameters.setWhereConditions(whereMap);
 
@@ -424,8 +402,7 @@ public class MemoryDatabase {
 
             System.out.println("Write the select query");
             System.out.println("SQL> ");
-            //String userInput = "select school, sex, age,guardian, from t1 where school equal MS order by sex DSC with bubble_sort.";
-            // "select school, sex, guardian, from t1 where guardian equal father order by sex DSC with bubble_sort.";
+
             //Get the select query from the user
             String userInput = scanner.nextLine();
 
@@ -470,11 +447,13 @@ public class MemoryDatabase {
      */
     private void createHuffman() {
         Map<String, Map<String, Integer>> columnFrequencies = new HashMap<>();
-
+        //loop through entire linked list and count frequencies of
+        //elements column-wise
         LinkedList.Node currentNode = list.head;
         while (currentNode != null) {
             Student student = currentNode.student;
 
+            //Generic way to iterate through each column of student class
             for (Field field : Student.class.getDeclaredFields()) {
                 field.setAccessible(true);
                 try {
@@ -497,19 +476,23 @@ public class MemoryDatabase {
         }
 
 
+        //Create the huffman tree for each column and store the reference
         for (Map.Entry<String, Map<String, Integer>> entry : columnFrequencies.entrySet())
             codec.put(entry.getKey(), HuffmanCodec.fromFrequencies(entry.getValue(), true));
-        // 3) Build Huffman codecs WITH TRACE enabled (for step-by-step screenshots)
-
 
     }
 
 
-
+    /**
+     * Method is used to encode the entire in-memory database using huffman code,
+     * This is advantageous during saving the table as it reduces the size of the data
+     */
     private void encodeDatabase() {
         LinkedList.Node curr = list.head;
         while (curr != null) {
             Student currentStudent = curr.student;
+
+            //Generic way to iterate through each column of student class
             for (Field field : Student.class.getDeclaredFields()) {
                 field.setAccessible(true);
                 String colName = field.getName();
@@ -520,8 +503,10 @@ public class MemoryDatabase {
                     if (val == null) continue;
 
                     String token = String.valueOf(val);  //get the col value in string
+                    //encode each value using the corresponding huffman code
                     String bitString = code.encode(token);
-
+                    //hold the entire database
+                    //We can also store this physically
                     encodedDatabase.computeIfAbsent(colName, _ -> new ArrayList<>()).add(bitString);
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
@@ -536,28 +521,29 @@ public class MemoryDatabase {
     /**
      * Method to create the red back tree for the given in-memory database
      */
-    private LinkedList.Node createRBTree(LinkedList.Node filteredStudentList,Map<Field,String> whereCondition) throws IllegalAccessException {
+    private LinkedList.Node createRBTree(LinkedList.Node filteredStudentList, Map<Field, String> whereCondition) throws IllegalAccessException {
         List<HuffmanCodec> codecs = new ArrayList<>();
-        List<Field> columns = whereCondition.keySet().stream().toList();
-        List<String> comparatorValues = whereCondition.values().stream().toList();
+        List<Field> columns = whereCondition.keySet().stream().toList();//where condition columns
+        List<String> comparatorValues = whereCondition.values().stream().toList(); //comparator value
 
         for (Field column : columns) {
             codecs.add(codec.get(column.getName()));
         }
-//        codecs.add(codec.get(field.getName()));
-//        codecs.add(codec.get(whereColumn2.getName()));  //NOT THE EFFICIENT WAY, good for testing
+
         RedBlackTree tree = new RedBlackTree(codecs);
         LinkedList.Node current = filteredStudentList;
         //Loop until the end of the linked-list
         while (current != null) {
 
-            tree.add(current, current.student.convertFieldToColumn(columns));
+            tree.add(current, current.student.convertFieldToColumn(columns)); //build RB tree based on the where condition columns
+            //making it easier for search operation
             current = current.next;
         }
         LinkedList filteredStudent = new LinkedList();
         //print the constructed tree
         tree.printTree();
 
+        //walk thew tree to find the tree node with the given index
         List<FilteredStudent> filteredStudents = tree.search(comparatorValues);
         //Create a new LinkedList for filtered students
         for (FilteredStudent fs : filteredStudents) {

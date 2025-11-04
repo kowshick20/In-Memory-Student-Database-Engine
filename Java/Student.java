@@ -194,20 +194,10 @@ public class Student {
 
 
     /**
-     * @param columns - Required column
-     * @return - A filtered student object that contain only the filter columns from student class
-     * @throws IllegalAccessException - Column not found
+     * @param column List of required fields
+     * @return List of actual student columns
+     * @throws IllegalAccessException
      */
-    public FilteredStudent filterColumns(Field[] columns) throws IllegalAccessException {
-        Object[] values = new Object[columns.length];
-        for (int i = 0; i < columns.length; i++) {
-            columns[i].setAccessible(true);  //give access if variable is private
-            values[i] = columns[i].get(this); //Get the data of the student variable
-        }
-
-        return new FilteredStudent(this, columns, values);  //map the columns and values to a filteredStudent object
-    }
-
     public List<String> convertFieldToColumn(List<Field> column) throws IllegalAccessException {
         List<String> columnName = new ArrayList<>();
         for (Field field : column) {
