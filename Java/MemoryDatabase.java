@@ -60,89 +60,6 @@ public class MemoryDatabase {
     }
 
 
-    /**
-     * Method to filter out only the required columns from the encoded in-memory database
-     *
-     * @param selectedColumns - Required columns
-     * @return Linked list of filtered students
-     */
-    private LinkedList.Node findStudent(Field[] selectedColumns) {
-
-        LinkedList filteredStudents = new LinkedList(); //Create a new LinkedList for filtered students
-        LinkedList.Node current = null; //current node pointer
-        int n = encodedDatabase.values().iterator().next().size();  //total columns in student table
-
-        //each columns
-        for (int row = 0; row < n; row++) {
-            //Array to hold the values of the objects
-            Object[] values = new Object[selectedColumns.length];
-
-            //required columns
-            for (int col = 0; col < selectedColumns.length; col++) {
-                Field cols = selectedColumns[col];
-                String column = cols.getName();  //names of the column to be selected
-                HuffmanCodec code = codec.get(column); //get the huffman coding tree
-
-                List<String> encodedValuesList = encodedDatabase.get(column); //get the encoded column
-                String encodedRow = encodedValuesList.get(row); //locate the value which is required
-
-                Object decoded = code.decode(encodedRow, cols.getType());  //decode them
-                values[col] = decoded;
-            }
-            FilteredStudent filteredStudent = new FilteredStudent(selectedColumns, values);  //create Filtered Student
-            current = filteredStudents.insert(current, filteredStudent, null); //create the linked list
-
-        }
-        return filteredStudents.head;
-    }
-
-    /**
-     * Method to verify the correctness of user query against the SQL grammar and
-     * retrieve the select query parameters
-     *
-     * @param userInput - User input select query
-     * @return -  object of select query parameters
-     */
-    private SelectParameters retrieveParameters(String userInput) {
-        //Select query grammar, the user input needs to satisfy this grammar to pass
-        String sqlGrammar = "select\\s+(.*?)\\s+" +   // group 1 = columns list
-                "from\\s+(\\w+)\\s+where\\s+((?:\\w+\\s+equal\\s+\\w+)(?:\\s+and\\s+\\w+\\s+equal\\s+\\w+)*)\\s+" + // group 2 = table name group 3= where col group 4= comp value
-                "order\\s+by\\s+(\\w+)\\s+(ASC|DSC)\\s+" +  // group 5 = sort column, group 6 = order
-                "with\\s+(bubble_sort|insertion_sort|merge_sort|quick_sort)\\.?"; // group 7 = sort algorithm
-
-        //Compile the SQL grammar i.e. convert Regex string to Grammar
-        Pattern pattern = Pattern.compile(sqlGrammar);
-        //Match the User input against out grammar
-        Matcher m = pattern.matcher(userInput);
-        SelectParameters parameters;
-        //If user input matches
-        if (m.matches()) {
-            //Retrieve the parameters from the user input
-            parameters = new SelectParameters(Arrays.stream(m.group(1).split(",\\s?")).  //There can be multiple COMMA separated select columns
-                    map(MemoryDatabase::convertStringToField).toArray(Field[]::new),   //Convert String to Object.Field
-                    m.group(2),    //Retrieve Table name
-                    convertStringToField(m.group(4)),  //sort column
-                    m.group(5),  //sort order
-                    m.group(6)  //Get the sort algorithm to be used
-            );
-
-
-            String whereClause = m.group(3);//Get the where clause
-            Pattern condPattern = Pattern.compile("(\\w+)\\s+equal\\s+(\\w+)");
-            Matcher matcher = condPattern.matcher(whereClause);
-            Map<Field, String> whereMap = new HashMap<>();
-            while (matcher.find()) {
-                Field colName = convertStringToField(matcher.group(1).trim());
-                String comparatorVal = matcher.group(2).trim();
-                whereMap.put(colName, comparatorVal);
-            }
-            parameters.setWhereConditions(whereMap);
-
-        } else
-            throw new IllegalArgumentException("Syntax not matching");  //If user-input not matched
-
-        return parameters;
-    }
 
     /**
      * Method to convert user input column string to java object field parameter,
@@ -396,12 +313,14 @@ public class MemoryDatabase {
         try (BufferedReader br = new BufferedReader(new FileReader(inputFile)); //Buffered reader to enable to the Java methods to read from the given file
              PrintWriter printWriter = new PrintWriter(new FileWriter(outputFile))) //Buffered writer to enable the Java methods to write on the given file
         {
+            //Part-1
             br.readLine();  //Skip the Header of the csv
             database.read(br, database.list.head);   //Read the student details from the file and add it to the linked list
             database.createHuffman();  //identify the huffman encoding pattern.
 
             database.encodeDatabase();  //encode the whole student database, can store physically
 
+            //Part-2
             System.out.println("Write the select query");
             System.out.println("SQL> ");
 
@@ -411,23 +330,23 @@ public class MemoryDatabase {
             //Check an retrieve parameters
             SelectParameters parameters = database.retrieveParameters(userInput);
             //filter only required column
-            LinkedList.Node filteredStudentList = database.findStudent(parameters.getColumns());
+            LinkedList filteredStudentList = database.findStudent(parameters.getColumns());
 
             //Draw a Red-Black tree to ease out the searching process, the tree index is based on the where clause
             filteredStudentList = database.createRBTree(filteredStudentList, parameters.getWhereConditions());
 
             //Sort the filtered Object using the selected algorithm
-            filteredStudentList = switch (parameters.getSortAlgorithm()) {
+            filteredStudentList.head = switch (parameters.getSortAlgorithm()) {
                 case "bubble_sort" ->
-                        database.bubbleSort(filteredStudentList, parameters.getSortColumn(), parameters.getSortMethod());
+                        database.bubbleSort(filteredStudentList.head, parameters.getSortColumn(), parameters.getSortMethod());
                 case "insertion_sort" ->
                     // Insertion Sort
-                        database.insertionSort(filteredStudentList, parameters.getSortColumn(), parameters.getSortMethod());
+                        database.insertionSort(filteredStudentList.head, parameters.getSortColumn(), parameters.getSortMethod());
                 case "merge_sort" ->
-                        database.mergeSort(filteredStudentList, parameters.getSortColumn(), parameters.getSortMethod());
+                        database.mergeSort(filteredStudentList.head, parameters.getSortColumn(), parameters.getSortMethod());
                 default ->
                     //quick Sort
-                        database.quickSort(filteredStudentList, parameters.getSortColumn(), parameters.getSortMethod());
+                        database.quickSort(filteredStudentList.head, parameters.getSortColumn(), parameters.getSortMethod());
             };
             //Get the columns header in a comma separated string
             String head = Arrays.stream(parameters.getColumns())
@@ -437,7 +356,7 @@ public class MemoryDatabase {
 
             printWriter.println(head);  //print the header row of the csv
             //Print rest of the rows
-            database.print(filteredStudentList, printWriter);
+            database.print(filteredStudentList.head, printWriter);
             System.out.println("Refer the created log files for Huffman and Red-black trees");
             System.out.println("Output save to " + OUTFILE);
         } catch (Exception e) { //Global catch block to handle all the exception thrown by the program
@@ -521,10 +440,95 @@ public class MemoryDatabase {
 
     }
 
+
+    /**
+     * Method to filter out only the required columns from the encoded in-memory database
+     *
+     * @param selectedColumns - Required columns
+     * @return Linked list of filtered students
+     */
+    private LinkedList findStudent(Field[] selectedColumns) {
+
+        LinkedList filteredStudents = new LinkedList(); //Create a new LinkedList for filtered students
+        LinkedList.Node current = null; //current node pointer
+        int n = encodedDatabase.values().iterator().next().size();  //total columns in student table
+
+        //each columns
+        for (int row = 0; row < n; row++) {
+            //Array to hold the values of the objects
+            Object[] values = new Object[selectedColumns.length];
+
+            //required columns
+            for (int col = 0; col < selectedColumns.length; col++) {
+                Field cols = selectedColumns[col];
+                String column = cols.getName();  //names of the column to be selected
+                HuffmanCodec code = codec.get(column); //get the huffman coding tree
+
+                List<String> encodedValuesList = encodedDatabase.get(column); //get the encoded column
+                String encodedRow = encodedValuesList.get(row); //locate the value which is required
+
+                Object decoded = code.decode(encodedRow, cols.getType());  //decode them
+                values[col] = decoded;
+            }
+            FilteredStudent filteredStudent = new FilteredStudent(selectedColumns, values);  //create Filtered Student
+            current = filteredStudents.insert(current, filteredStudent, null); //create the linked list
+
+        }
+        return filteredStudents;
+    }
+
+    /**
+     * Method to verify the correctness of user query against the SQL grammar and
+     * retrieve the select query parameters
+     *
+     * @param userInput - User input select query
+     * @return -  object of select query parameters
+     */
+    private SelectParameters retrieveParameters(String userInput) {
+        //Select query grammar, the user input needs to satisfy this grammar to pass
+        String sqlGrammar = "select\\s+(.*?)\\s+" +   // group 1 = columns list
+                "from\\s+(\\w+)\\s+where\\s+((?:\\w+\\s+equal\\s+\\w+)(?:\\s+and\\s+\\w+\\s+equal\\s+\\w+)*)\\s+" + // group 2 = table name group 3= where col group 4= comp value
+                "order\\s+by\\s+(\\w+)\\s+(ASC|DSC)\\s+" +  // group 5 = sort column, group 6 = order
+                "with\\s+(bubble_sort|insertion_sort|merge_sort|quick_sort)\\.?"; // group 7 = sort algorithm
+
+        //Compile the SQL grammar i.e. convert Regex string to Grammar
+        Pattern pattern = Pattern.compile(sqlGrammar);
+        //Match the User input against out grammar
+        Matcher m = pattern.matcher(userInput);
+        SelectParameters parameters;
+        //If user input matches
+        if (m.matches()) {
+            //Retrieve the parameters from the user input
+            parameters = new SelectParameters(Arrays.stream(m.group(1).split(",\\s?")).  //There can be multiple COMMA separated select columns
+                    map(MemoryDatabase::convertStringToField).toArray(Field[]::new),   //Convert String to Object.Field
+                    m.group(2),    //Retrieve Table name
+                    convertStringToField(m.group(4)),  //sort column
+                    m.group(5),  //sort order
+                    m.group(6)  //Get the sort algorithm to be used
+            );
+
+
+            String whereClause = m.group(3);//Get the where clause
+            Pattern condPattern = Pattern.compile("(\\w+)\\s+equal\\s+(\\w+)");
+            Matcher matcher = condPattern.matcher(whereClause);
+            Map<Field, String> whereMap = new HashMap<>();
+            while (matcher.find()) {
+                Field colName = convertStringToField(matcher.group(1).trim());
+                String comparatorVal = matcher.group(2).trim();
+                whereMap.put(colName, comparatorVal);
+            }
+            parameters.setWhereConditions(whereMap);
+
+        } else
+            throw new IllegalArgumentException("Syntax not matching");  //If user-input not matched
+
+        return parameters;
+    }
+
     /**
      * Method to create the red back tree for the given in-memory database
      */
-    private LinkedList.Node createRBTree(LinkedList.Node filteredStudentList, Map<Field, String> whereCondition) throws IllegalAccessException {
+    private LinkedList createRBTree(LinkedList filteredStudentList, Map<Field, String> whereCondition) throws IllegalAccessException {
         List<HuffmanCodec> codecs = new ArrayList<>();
         List<Field> columns = whereCondition.keySet().stream().toList();//where condition columns
         List<String> comparatorValues = whereCondition.values().stream().toList(); //comparator value
@@ -534,7 +538,7 @@ public class MemoryDatabase {
         }
 
         RedBlackTree tree = new RedBlackTree(codecs);
-        LinkedList.Node current = filteredStudentList;
+        LinkedList.Node current = filteredStudentList.head;
         //Loop until the end of the linked-list
         while (current != null) {
 
@@ -542,19 +546,20 @@ public class MemoryDatabase {
             //making it easier for search operation
             current = current.next;
         }
-        LinkedList filteredStudent = new LinkedList();
 
-        tree.writeToFile("Final Red-Black Tree");
         //print the constructed tree
         tree.writeTreeToFile();
+        RBTreeVisualization.showTree(tree.getRoot(),"Final");  //Print the final constructed RB-Tree
 
-        //walk thew tree to find the tree node with the given index
+        //search for the given value
+
+        //walk the tree to find the tree node with the given index
         List<FilteredStudent> filteredStudents = tree.search(comparatorValues);
         //Create a new LinkedList for filtered students
         for (FilteredStudent fs : filteredStudents) {
-            current = filteredStudent.insert(current, fs, null);
+            current = filteredStudentList.insert(current, fs, null);
         }
-        return filteredStudent.head;
+        return filteredStudentList;
 
     }
 
@@ -572,7 +577,5 @@ public class MemoryDatabase {
             return 0;
         return print(current.next, printWriter); //recursively call the print method with updated last node pointer
     }
-
-
 }
 

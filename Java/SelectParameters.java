@@ -11,7 +11,7 @@ import java.util.Map;
 //Class to store the SQL select parameters
 public class SelectParameters {
     private final Field[] columns;  //Hold the required columns for filtering
-    private final String table;  //Hold the table name
+    private final String table;  //Hold the table name, useful when extend the database to hold multiple in-memory tables
     private Map<Field, String> whereConditions;  //hold the where conditions and their corresponding comparision value
     private final Field sortColumn;  //Column to be sorted based on
     private final String sortMethod;  //ASC/DSC

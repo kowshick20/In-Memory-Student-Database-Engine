@@ -15,9 +15,15 @@ import java.util.List;
  */
 public class RedBlackTree {
     private final List<HuffmanCodec> codec;  //Knows huffman tree values
+
+    private int i=0;  //Number to keep track of the tree files created (we create a new file to show step-step visualization)
+    public RBTreeNode getRoot() {
+        return root;
+    }
+
     private RBTreeNode root;  //keeps track of the root node of the tree
-    private final boolean verbose = true;
-    private final boolean snapshotAfterFixup = true;
+    private final boolean verbose = true;//enable logging
+    private final boolean snapshotAfterFixup = true;  //enable logging
     private static final String LOG_FILE = "RB_LOG.txt";
     private static  final File log_file;
 
@@ -63,11 +69,13 @@ public class RedBlackTree {
                     //if is right child then  the grandparent-parent-child subtree is left biased
                     current.parent.isRed = false;   //make the parent node to black
                     current.parent.parent.isRed = true;  //make grandparent node to be red
-                    leftRotate(current.parent.parent);  //do a whole left rotation, making the parent the grandparent, grandparent left child and child stays as right child
+                    leftRotate(current.parent.parent);  //do a whole left rotation, making the parent the grandparent,
+                    // grandparent left child and child stays as right child
                     snap("after case3");
 
                 }
-            } else {  //if parent is a left child of the grandparent, this functionality is basically the mirror image of the above
+            } else {  //if parent is a left child of the grandparent,
+                // this functionality is basically the mirror image of the above
                 uncleNode = current.parent.parent.right;//determine the Uncle node, which is the right child of the grandparent
                 log("fixup case1(mirror): recolor parent/uncle, move up");
                 //If uncle is present, and it is a red node then recolor as follows
@@ -90,7 +98,8 @@ public class RedBlackTree {
                     //if is left child then  the grandparent-parent-child subtree is right biased
                     current.parent.isRed = false; //make parent node to black
                     current.parent.parent.isRed = true;  //make grandparent node to red
-                    rightRotate(current.parent.parent); //do a whole left rotation, making the parent the grandparent, grandparent left child and child stays as right child
+                    rightRotate(current.parent.parent); //do a whole left rotation, making the parent the grandparent,
+                    // grandparent left child and child stays as right child
                     snap("after case3(mirror)");
                 }
             }
@@ -187,10 +196,13 @@ public class RedBlackTree {
         rbTreeNode.parent = parent;
         if (parent == null) {  //no root node
             this.root = rbTreeNode; //make the new node as the root node
+            snap(String.valueOf(i++));
         } else if (rbTreeNode.key < parent.key) { //if index of new node is less than parent's
             parent.left = rbTreeNode; //make the new node as left child
+            snap(String.valueOf(i++));
         } else if (rbTreeNode.key > parent.key) { //if index of new node is greater than parent's
             parent.right = rbTreeNode; //make the new node as right child
+            snap(String.valueOf(i++));
         }
 
         if (rbTreeNode.parent == null) {
@@ -289,9 +301,20 @@ public class RedBlackTree {
         }
     }
 
-    private void log(String s) { if (verbose) writeToFile(s); }
+    /**
+     * @param s Log message
+     */
+    private void log(String s) {
+        if (verbose) writeToFile(s);
+    }
 
-    private void snap(String label) { if (snapshotAfterFixup) { writeToFile("[RB SNAP] " + label); writeTreeToFile(); } }
+    private void snap(String label) { if (snapshotAfterFixup) {
+        writeToFile("[RB SNAP] " + label);  //write the log file
+        //Call the visualization class to create the tree visualization in each step
+        writeTreeToFile();
+        //RBTreeVisualization.showTree(this.root, String.valueOf(i++));   //{Uncomment} see step by step visualization (if needed)
+    }
+    }
 
     /**
      * write LOG messages to a txt file
@@ -330,7 +353,7 @@ public class RedBlackTree {
             printTree();
             System.out.flush();
             System.setOut(oldOut);   //set it back to console out
-            pw.println(byteArrayOutputStream.toString());
+            pw.println(byteArrayOutputStream);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
