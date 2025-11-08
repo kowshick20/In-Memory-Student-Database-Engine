@@ -16,7 +16,8 @@ import java.io.IOException;
 public class RBTreeVisualization extends JPanel {
     private static final int NODE_GAP = 130;   //The initial gap between two nodes
     private final RBTreeNode root;//root node of the RB tree
-
+    private final int width = 1920;  //define the initial width
+    private final int height = 1080; //define the initial height
     public RBTreeVisualization(RBTreeNode root) {
         this.root = root;
         setBackground(Color.WHITE);  //Background color of the image is always white
@@ -116,8 +117,8 @@ public class RBTreeVisualization extends JPanel {
         RBTreeVisualization panel = new RBTreeVisualization(root);   //init this class
         //Draw and save the tree
         panel.saveSnapshot("RB_Tree" + filename + ".png",
-                Toolkit.getDefaultToolkit().getScreenSize().width + 2500,  //width image
-                Toolkit.getDefaultToolkit().getScreenSize().height); // height of the image
+                panel.width + 2500,  //width image
+                panel.height); // height of the image
     }
 
 }

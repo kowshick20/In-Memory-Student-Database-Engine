@@ -1,0 +1,33 @@
+digraph RBTree {
+  node [shape=circle, style=filled, fontname="Arial"];
+  edge [color=gray];
+  "50" [label="50", fillcolor="black", fontcolor="white"];
+  "50" -> "30";
+  "30" [label="30", fillcolor="red", fontcolor="white"];
+  "30" -> "20";
+  "20" [label="20", fillcolor="black", fontcolor="white"];
+  "20_L" [style=invis];
+  "20" -> "20_L" [style=invis];
+  "20_R" [style=invis];
+  "20" -> "20_R" [style=invis];
+  "30" -> "40";
+  "40" [label="40", fillcolor="black", fontcolor="white"];
+  "40_L" [style=invis];
+  "40" -> "40_L" [style=invis];
+  "40_R" [style=invis];
+  "40" -> "40_R" [style=invis];
+  "50" -> "70";
+  "70" [label="70", fillcolor="red", fontcolor="white"];
+  "70" -> "60";
+  "60" [label="60", fillcolor="black", fontcolor="white"];
+  "60_L" [style=invis];
+  "60" -> "60_L" [style=invis];
+  "60_R" [style=invis];
+  "60" -> "60_R" [style=invis];
+  "70" -> "80";
+  "80" [label="80", fillcolor="black", fontcolor="white"];
+  "80_L" [style=invis];
+  "80" -> "80_L" [style=invis];
+  "80_R" [style=invis];
+  "80" -> "80_R" [style=invis];
+}

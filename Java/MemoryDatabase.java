@@ -550,7 +550,8 @@ public class MemoryDatabase {
         //print the constructed tree
         tree.writeTreeToFile();
         RBTreeVisualization.showTree(tree.getRoot(),"Final");  //Print the final constructed RB-Tree
-
+        //RBTreeGraphviz.saveAsGraphviz(tree.getRoot(),"Final");
+        RBTreeVisualizer.saveAsDot(tree.getRoot(),"Final");
         //search for the given value
 
         //walk the tree to find the tree node with the given index

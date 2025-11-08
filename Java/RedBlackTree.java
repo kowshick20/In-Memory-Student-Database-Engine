@@ -54,7 +54,7 @@ public class RedBlackTree {
                     //Balance up to grandparent level,
                     // now move up to the grandparent level and check the ancestor nodes
                     current = current.parent.parent;
-                    snap("after case1");
+                    snap(String.valueOf(i++));
 
                 } else { //either uncle node is absent or it is black, do rotations and recolor
 
@@ -62,7 +62,7 @@ public class RedBlackTree {
                         log("fixup case2: right-rotate parent");
                         current = current.parent;
                         rightRotate(current); //do a right rotation,and make the grandparent-parent-child subtree left biased
-                        snap("after case2");
+                        snap(String.valueOf(i++));
 
                     }
                     log("fixup case3: left-rotate parent");
@@ -71,7 +71,7 @@ public class RedBlackTree {
                     current.parent.parent.isRed = true;  //make grandparent node to be red
                     leftRotate(current.parent.parent);  //do a whole left rotation, making the parent the grandparent,
                     // grandparent left child and child stays as right child
-                    snap("after case3");
+                    snap(String.valueOf(i++));
 
                 }
             } else {  //if parent is a left child of the grandparent,
@@ -86,13 +86,13 @@ public class RedBlackTree {
                     //Balance up to grandparent level,
                     // now move up to the grandparent level and check the ancestor nodes
                     current = current.parent.parent;
-                    snap("after case1(mirror)");
+                    snap(String.valueOf(i++));
                 } else { //either uncle node is absent or it is black, do rotations and recolor
                     if (current == current.parent.right) { //it is a right child
                         log("fixup case2(mirror): left-rotate parent");
                         current = current.parent;
                         leftRotate(current); //do a left rotation,and make the grandparent-parent-child subtree right biased
-                        snap("after case2(mirror)");
+                        snap(String.valueOf(i++));
                     }
                     log("fixup case3(mirror): right-rotate grandparent");
                     //if is left child then  the grandparent-parent-child subtree is right biased
@@ -100,7 +100,7 @@ public class RedBlackTree {
                     current.parent.parent.isRed = true;  //make grandparent node to red
                     rightRotate(current.parent.parent); //do a whole left rotation, making the parent the grandparent,
                     // grandparent left child and child stays as right child
-                    snap("after case3(mirror)");
+                    snap(String.valueOf(i++));
                 }
             }
             //There won't be any parents for root, so break the cycle
@@ -312,7 +312,8 @@ public class RedBlackTree {
         writeToFile("[RB SNAP] " + label);  //write the log file
         //Call the visualization class to create the tree visualization in each step
         writeTreeToFile();
-        //RBTreeVisualization.showTree(this.root, String.valueOf(i++));   //{Uncomment} see step by step visualization (if needed)
+        //RBTreeVisualization.showTree(this.root, label);   //{Uncomment} see step by step visualization (if needed)
+        //RBTreeVisualizer.saveAsDot(this.root, label);  //{Uncomment} see step by step visualization (if needed)
     }
     }
 
