@@ -217,9 +217,7 @@ GitHub repository names can't be changed through code, only through the repo's *
 
 ## Authors
 
-- Kowshick Srinivasan — linked list, Red-Black tree, student model, query engine, visualization
-- Qingyun PU — Huffman codec, database orchestration
+- Kowshick Srinivasan — linked list, Red-Black tree, student model, query engine, visualization, Huffman codec, database orchestration
 
 ---
 
-*Originally submitted as a two-part university algorithms course project ("Hw2" and "course project-2"); documented here as a standalone data structures and algorithms showcase.*
